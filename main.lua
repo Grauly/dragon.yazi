@@ -1,13 +1,11 @@
+package.cpath = package.cpath .. ";./?.lua"
+
 local header_name = "dragon"
 
 local options = {
     { on = "y", run = "export",     desc = "Drag files away with dragon" },
     { on = "Y", run = "export_all", desc = "Drag all files at once away with dragon" },
     { on = "d", run = "drop",       desc = "Drag files here with dragon" },
-}
-
-local quit_options = {
-    { on = "q", run = "quit", desc = "Stop accepting files" }
 }
 
 local notify = function(content, level)
@@ -52,14 +50,28 @@ local selected_or_hovered = ya.sync(function()
     return paths
 end)
 
-local get_command = function(command)
-    local optionalNixedModule = require(command)
-    return optionalNixedModule.command or command
+--needs a plugin named "nix-commands" with a database of commands
+local get_nix_command = function(command)
+    local loaded, content = pcall(require, "nix-commands")
+    if not loaded then
+        ya.err(content)
+        return command
+    end
+    if not content.commands then
+        ya.err("nix-commands does not have a commands section, defaulting")
+        return command
+    end
+    local nix_command = content.commands[command]
+    if not nix_command then
+        ya.err("nix-commands does not have a \""..command.."\" defined")
+        return command
+    end
+    return nix_command
 end
 
 local handle_export = function(export_all)
     local paths = selected_or_hovered()
-    local command = Command(get_command("dragon")):arg("--and-exit")
+    local command = Command(get_nix_command("dragon")):arg("--and-exit")
     if export_all then
         local all_command = ""
         if #paths > 10 then
@@ -69,14 +81,38 @@ local handle_export = function(export_all)
         end
         command = command:arg(all_command)
     end
-    command = command:args(paths)
-    local child, err = command:spawn()
+    local out, err = command:args(paths):output()
     if err then
         error(tostring(err))
+        return
     end
 end
 
+local get_cwd = ya.sync(function()
+    return cx.active.current.cwd
+end)
+
+local copy_file_to_cwd = function(location)
+    local cwd = get_cwd()
+    --todo: differntiate between local Url and web Url
+    info(tostring(cwd))
+end
+
 local handle_drop = function()
+    local command = Command(get_nix_command("dragon")):args { "--target", "--keep" }
+    local running = true
+    local child, err = command:spawn()
+    if err then
+        error(tostring(err))
+        return
+    end
+    while (running and (not err)) do
+        local line, event = child:read_line_with { timeout = 50 }
+        if event == 0 then
+            copy_file_to_cwd(line)
+        end
+
+    end
 end
 
 
@@ -90,5 +126,6 @@ return {
         elseif action == "drop" then
             handle_drop()
         end
-    end
+    end,
+    handle = "this is the main file"
 }
