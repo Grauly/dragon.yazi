@@ -3,10 +3,10 @@ package.cpath = package.cpath .. ";./?.lua"
 local header_name = "dragon"
 
 local options = {
-    { on = "y", run = "export",     desc = "Drag files away with dragon" },
-    { on = "Y", run = "export_all", desc = "Drag all files at once away with dragon" },
-    { on = "c", run = "drop",       desc = "Drag files here with dragon" },
-    { on = "x", run = "drop_cut",   desc = "Drag files here with dragon" },
+    { on = "y", run = "export",     desc = "drag single files" },
+    { on = "Y", run = "export_all", desc = "drag all files" },
+    { on = "c", run = "drop",       desc = "drop files" },
+    { on = "x", run = "drop_cut",   desc = "move files" },
 }
 
 local notify = function(content, level)
