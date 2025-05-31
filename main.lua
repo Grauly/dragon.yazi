@@ -1,3 +1,4 @@
+--- @since 25.5.28
 package.cpath = package.cpath .. ";./?.lua"
 
 local header_name = "dragon"
@@ -82,7 +83,7 @@ local handle_export = function(export_all)
         end
         command = command:arg(all_command)
     end
-    local out, err = command:args(paths):output()
+    local out, err = command:arg(paths):output()
     if err then
         error(tostring(err))
         return
@@ -103,13 +104,13 @@ local copy_local_file = function(cwd, file, cut)
         command = Command(get_nix_command("cp")):arg("-r")
         operation = "Copied"
     end
-    command = command:args({ "--backup=numbered", file, tostring(cwd).."/" })
+    command = command:arg { "--backup=numbered", file, tostring(cwd) .. "/" }
     local output, err = command:output()
     if err then
         error(tostring(err))
         return
     end
-    info(operation..": "..file)
+    info(operation .. ": " .. file)
 end
 
 local copy_internet_file = function(cwd, url)
@@ -135,13 +136,13 @@ end
 
 local handle_drop = function(cut)
     local command = Command(get_nix_command("dragon"))
-        :args { "--target", "--keep" }
+        :arg { "--target", "--keep" }
         :stdout(Command.PIPED)
     local child, err = command:spawn()
     while not err do
         local line, event = child:read_line_with { timeout = 50 }
         if event == 0 then
-            local file = line:gsub("\n","")
+            local file = line:gsub("\n", "")
             copy_file_to_cwd(file, cut)
         end
         if event == 2 then
